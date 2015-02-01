@@ -13,7 +13,6 @@
   header('Access-Control-Allow-Origin: *', true, 200);
 
 
-
   require_once("./fn.php");
 
 
@@ -36,4 +35,46 @@
     echo $result['content'];
 
   unset ($result);
+
+
+//--------------------------------------------------------------------------------------------------- analytics request
+  $result = curlWrap([
+                       "url"                        => "http://www.google-analytics.com/collect",
+                       "additional_request_headers" => ["Accept"            => "*/*"
+                                                        , "Connection"      => "keep-alive"
+                                                        , "Cache-Control"   => "no-cache"
+                                                        , "Pragma"          => "no-cache"
+                                                        , "Accept-Language" => isset($_SERVER['HTTP_ACCEPT_LANGUAGE']) ? $_SERVER['HTTP_ACCEPT_LANGUAGE'] : "en,en-US;q=0.8"
+                                                        , "User-Agent"      => $data['useragent']
+                                                        , "Content-Type"    => "text/plain; charset=utf-8"
+                                                        , "Referer"         => "http://fetch.eladkarako.com/"
+                                                        , "Cookie"          => '_ga=GA1.2.' . $data['unique_id_v1'] . '; ']
+                       , "is_forwarded_for"         => true
+                       , "is_post"                  => true //send as post
+                       , "post_data"                => ['v'        => 1 // ------------------------------------------------------------------- Version.
+                                                        , '_v'     => 'j23' // --------------------------------------------------------------- new versions (javascript)
+                                                        , 't'      => 'pageview' // ---------------------------------------------------------- action
+                                                        , 'dl'     => $data['url_canonise_full'] // ------------------------------------------ The landing page (for example home page http://icompile.eladkarako.com)
+                                                        , 'dp'     => $data['url_canonise_full'] // ------------------------------------------ The page that will receive the pageview (for example home page http://icompile.eladkarako.com?p=200)
+                                                        , 'dh'     => 'redalert.eladkarako.com' // ------------------------------------------- domain name used. hard coded
+                                                        , 'dr'     => $data['referer'] // ---------------------------------------------------- real referer - http referrer or empty string
+                                                        , 'cs'     => $data['referer'] // ---------------------------------------------------- real referer - http referrer or empty string (the source of the visit (for example 'google') )
+                                                        , 'ul'     => $data['language_selected'] // ------------------------------------------ browser language "en" or "he_IL", etc..
+                                                        , 'de'     => 'UTF-8' // ------------------------------------------------------------- charset supported
+                                                        , 'dt'     => 'Red-Alert API' // ----------------------------------------------------- page's title
+                                                        , 'uip'    => $data['ip'] // --------------------------------------------------------- client-ip.
+                                                        , 'ua'     => $data['useragent'] // -------------------------------------------------- client user-agent.
+                                                        , 'cid'    => $data['unique_id_v1'] // ----------------------------------------------- client unique-id (uniqueId or UUIDv4)
+                                                        , 'linkid' => 'content' // ----------------------------------------------------------- flag to collect more data, and aggregate it in reports (demographic, etc..)
+                                                        , 'tid'    => 'UA-59223625-1' // ----------------------------------------------------- Google Analytics account ID (UA-98765432-1). hard coded.
+
+                                                        //some stuff that are not important since we can not really measure them at all (no javascript client side..)
+                                                        , 'a'      => 4998045 // ------------------------------------------------------------- ?
+                                                        , '_s'     => 1 // ------------------------------------------------------------------- ?
+                                                        , 'sd'     => '24-bit' // ------------------------------------------------------------ mock browser data : screen 24bit color
+                                                        , 'sr'     => '1366x768' // ---------------------------------------------------------- mock browser data : screen 24bit color
+                                                        , 'vp'     => '1341x397' // ---------------------------------------------------------- mock browser data : screen view-port.
+                                                        // ------------------------------------------------------------ mock browser data : screen view-port.
+                                                        , 'fl'     => '14.0 r0']
+                     ]);
   die(0);
