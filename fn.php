@@ -3,11 +3,11 @@
 
   $data = collectData($data); //update data with
 
-  define('PROXY_URL', !hasArg('proxy_url_override') ? 'http://193.43.245.165:80' : filter_var($_REQUEST['proxy_url_override'], FILTER_SANITIZE_URL));
+//  define('PROXY_URL', !hasArg('proxy_url_override') ? 'http://193.43.245.165:80' : filter_var($_REQUEST['proxy_url_override'], FILTER_SANITIZE_URL));
 
   define('IP_CLIENT', isset($data['ip']) ? $data['ip'] : '');
   define('IP_SERVER', isset($data['ipserver']) ? $data['ipserver'] : '');
-  define('IP_PROXY_URL', ('' !== PROXY_URL) ? gethostbyname(parse_url(PROXY_URL, PHP_URL_HOST)) : '');
+//  define('IP_PROXY_URL', ('' !== PROXY_URL) ? gethostbyname(parse_url(PROXY_URL, PHP_URL_HOST)) : '');
 
 
   //
@@ -268,12 +268,6 @@
     $is_forwarded_for = isset($args['is_forwarded_for']) ?
       $args['is_forwarded_for'] : set_and_return($args, 'is_forwarded_for', false);
 
-    $is_use_proxy = isset($args['is_use_proxy']) ?
-      $args['is_use_proxy'] : set_and_return($args, 'is_use_proxy', false);
-
-    $proxy_url = isset($args['proxy_url']) ?
-      $args['proxy_url'] : set_and_return($args, 'proxy_url', PROXY_URL);
-
     $is_auto_set_host_header = isset($args['is_auto_set_host_header']) ?
       $args['is_auto_set_host_header'] : set_and_return($args, 'is_auto_set_host_header', false);
 
@@ -315,10 +309,6 @@
     }
 
 
-    if (true === $is_use_proxy) { //http://www.xroxy.com/proxylist.php?port=&type=Distorting&ssl=ssl&country=IL&latency=&reliability=#table
-      $opts[ CURLOPT_PROXY ] = $proxy_url;
-    }
-
     if (true === $is_follow_locations) {
       $opts[ CURLOPT_FOLLOWLOCATION ] = true;
       $opts[ CURLOPT_MAXREDIRS ] = 0;
@@ -348,12 +338,9 @@
 
       if ('' !== IP_CLIENT) { //fill what is available
         $header_value .= IP_CLIENT;
-        if ('' !== IP_SERVER) {
-          $header_value .= ', ' . IP_SERVER;
-          if ('' !== IP_PROXY_URL) {
-            $header_value .= ', ' . IP_PROXY_URL;
-          }
-        }
+        if ('' !== IP_SERVER)
+          if (IP_SERVER !== IP_CLIENT)
+            $header_value .= ', ' . IP_SERVER;
       }
 
       if ('' !== $header_value) {
@@ -481,8 +468,8 @@
 
     return [
       "content"                      => $content
-      , "content_base64"             => base64_encode($content)
-      , "content_serialize"          => serialize($content)
+      //      , "content_base64"             => base64_encode($content)
+      //      , "content_serialize"          => serialize($content)
 
       , "connection"                 => [
         "headers" => [
