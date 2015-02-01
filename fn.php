@@ -311,7 +311,7 @@
 
     if (true === $is_follow_locations) {
       $opts[ CURLOPT_FOLLOWLOCATION ] = true;
-      $opts[ CURLOPT_MAXREDIRS ] = 3;
+      $opts[ CURLOPT_MAXREDIRS ] = 5;
     }
 
     if (true === $is_no_cache) {
@@ -452,19 +452,21 @@
     $headers_request = parse_flat_array_to_associative_array(parse_string_to_flat_array($info['request_header']));
     unset($info['request_header']);
 
-    $response_headers_and_content = explode("\r\n\r\n", $response_headers_and_content);
+    $response_headers_and_content = explode("\r\n\r\n", $response_headers_and_content); //response(s)-headers and content are \r\n\r\n separated (last is content).
+    $content = array_pop($response_headers_and_content);
+    $headers_response = $response_headers_and_content; //might be more then one item, due to redirections
+    unset($response_headers_and_content); //we have '$headers_response' and '$content'.
 
-    $headers_response = array_shift($response_headers_and_content);
-    $headers_response = parse_string_to_flat_array($headers_response);
-    $headers_response = parse_flat_array_to_associative_array($headers_response);
+    $headers_response = array_map(function ($item) {
+      return parse_flat_array_to_associative_array(parse_string_to_flat_array($item));
+    }, $headers_response);
+
     $headers_response_is_real = true;
     if (true === empty($headers_response)) {
       $headers_response = get_headers($url, true);
       $headers_response_is_real = false;
     }
 
-    $content = (count($response_headers_and_content) > 1) ? implode("\r\n\r\n", $response_headers_and_content) : implode("", $response_headers_and_content);
-    unset($response_headers_and_content); //we have '$headers_response' and '$content'.
 
     return [
       "content"                      => $content
