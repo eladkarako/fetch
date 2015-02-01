@@ -311,7 +311,7 @@
 
     if (true === $is_follow_locations) {
       $opts[ CURLOPT_FOLLOWLOCATION ] = true;
-      $opts[ CURLOPT_MAXREDIRS ] = 0;
+      $opts[ CURLOPT_MAXREDIRS ] = 3;
     }
 
     if (true === $is_no_cache) {
