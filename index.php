@@ -1,5 +1,14 @@
 <?php
 
+  /**
+   * ...../fetch/?url=google.com                            --- output is text plain of the page.
+   * ...../fetch/?url=google.com&content_type=text/html     --- output is rendered by browser because of mime-type.
+   * ...../fetch/?url=google.com&debug                      --- output is text + debug information.
+   *
+   * @author Elad Karako (icompile.eladkarako.com)
+   * @link   http://icompile.eladkarako.com
+   */
+
   while (ob_get_level() > 0) ob_end_flush();
 
   date_default_timezone_set("Asia/Jerusalem");
@@ -9,7 +18,7 @@
 
   header('Charset: UTF-8', true);
   header('Content-Encoding: UTF-8');
-  header('Content-Type: text/' . (isset($_REQUEST['content_type']) ? $_REQUEST['content_type'] : 'plain') . '; charset=UTF-8', true);
+  header('Content-Type: ' . (isset($_REQUEST['content_type']) ? $_REQUEST['content_type'] : 'text/plain') . '; charset=UTF-8', true);
 
   header('Access-Control-Allow-Origin: *', true, 200);
 
