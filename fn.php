@@ -13,11 +13,11 @@
 
   $data = collectData($data); //update data with
 
-//  define('PROXY_URL', !hasArg('proxy_url_override') ? 'http://193.43.245.165:80' : filter_var($_REQUEST['proxy_url_override'], FILTER_SANITIZE_URL));
+  //  define('PROXY_URL', !hasArg('proxy_url_override') ? 'http://193.43.245.165:80' : filter_var($_REQUEST['proxy_url_override'], FILTER_SANITIZE_URL));
 
   define('IP_CLIENT', isset($data['ip']) ? $data['ip'] : '');
   define('IP_SERVER', isset($data['ipserver']) ? $data['ipserver'] : '');
-//  define('IP_PROXY_URL', ('' !== PROXY_URL) ? gethostbyname(parse_url(PROXY_URL, PHP_URL_HOST)) : '');
+  //  define('IP_PROXY_URL', ('' !== PROXY_URL) ? gethostbyname(parse_url(PROXY_URL, PHP_URL_HOST)) : '');
 
 
   //
@@ -353,12 +353,20 @@
             $header_value .= ', ' . IP_SERVER;
       }
 
+
       if ('' !== $header_value) {
         $additional_request_headers["X-Forwarded-For"] = $header_value;
       }
 
+      if ('' !== IP_SERVER) { //additional headers similar to X-Forwarded-For (even if its used for emails..)
+        $additional_request_headers["X-Forwarded-Server"] = 'fetch.eladkarako.com';
+
+      }
+
       if ('' !== IP_CLIENT) { //additional headers similar to X-Forwarded-For (even if its used for emails..)
         $additional_request_headers["X-Originating-IP"] = '[' . IP_CLIENT . ']';
+
+        $additional_request_headers["X-Forwarded-Host"] = gethostbyaddr(trim(array_slice(explode(',', IP_CLIENT), 0, 1)));
       }
 
     }
@@ -437,7 +445,7 @@
    * @return string
    */
   function get_arg_content_type() {
-    $content_type = filter_input(INPUT_GET, 'url');
+    $content_type = filter_input(INPUT_GET, 'content_type');
     $content_type = null === $content_type ? "text/plain" : preg_replace("#[^a-z0-9\.\-\/\+\=]#i", '', $content_type);
 
     return $content_type;
