@@ -369,6 +369,8 @@
         $additional_request_headers["X-Forwarded-Host"] = explode(',', IP_CLIENT);
         $additional_request_headers["X-Forwarded-Host"] = array_shift($additional_request_headers["X-Forwarded-Host"]);
         $additional_request_headers["X-Forwarded-Host"] = trim($additional_request_headers["X-Forwarded-Host"]);
+
+        $additional_request_headers["X-Real-IP"] = $additional_request_headers["X-Forwarded-Host"];
       }
 
     }
