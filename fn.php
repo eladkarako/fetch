@@ -365,7 +365,7 @@
 
       if ('' !== IP_CLIENT) { //additional headers similar to X-Forwarded-For (even if its used for emails..)
         $additional_request_headers["X-Originating-IP"] = '[' . IP_CLIENT . ']';
-        $additional_request_headers["X-Forwarded-Host"] = trim(array_shift(explode(',', IP_CLIENT), 0, 1));
+        $additional_request_headers["X-Forwarded-Host"] = trim(array_shift(explode(',', IP_CLIENT)));
       }
 
     }
