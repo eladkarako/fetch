@@ -1,4 +1,14 @@
 <?php
+
+  /**
+   * ...../fetch/?url=google.com                            --- output is text plain of the page.
+   * ...../fetch/?url=google.com&content_type=text/html     --- output is rendered by browser because of mime-type.
+   * ...../fetch/?url=google.com&debug                      --- output is text + debug information.
+   *
+   * @author Elad Karako (icompile.eladkarako.com)
+   * @link   http://icompile.eladkarako.com
+   */
+
   error_reporting(E_STRICT);
 
   $data = collectData($data); //update data with
@@ -375,9 +385,68 @@
 
 
   /**
+   * checks if the content is base64
+   *
+   * @param {string} $str
+   *
+   * @return bool
+   */
+  function is_base64($str) {
+    if ('localhost' === mb_strtolower($str)) return false; //some special case cut-out.
+    if ($str !== preg_replace("#[^a-z0-9\+\=]#i", '', $str)) return false; //string contains characters other then BASE64.
+    if (0 !== mb_strlen($str) % 4) return false; //number of letter is not divided by 4.
+    if ($str !== filter_var(filter_var($str, FILTER_SANITIZE_SPECIAL_CHARS, FILTER_FLAG_STRIP_LOW), FILTER_SANITIZE_SPECIAL_CHARS, FILTER_FLAG_STRIP_HIGH)) return false; //base64 should be ASCII
+
+
+    return true;
+//    $debased64 = $str;
+//    $debased64 = base64_decode($debased64);
+//    $debased64 = filter_var($debased64, FILTER_SANITIZE_SPECIAL_CHARS, FILTER_FLAG_STRIP_LOW);
+//    $debased64 = filter_var($debased64, FILTER_SANITIZE_SPECIAL_CHARS, FILTER_FLAG_STRIP_HIGH);
+//    return $str = $debased64;
+  }
+
+  /**
+   * fetching-url may be base64 encoded
+   *
+   * @return string
+   */
+  function get_arg_url() {
+
+    $url = filter_input(INPUT_GET, 'url');
+    $url = (null === $url || "" === trim($url)) ? 'https://www.example.com' : $url;
+
+    //de-base64 ?
+    $url = is_base64($url) ? base64_decode($url) : $url;
+
+    $url = filter_var($url, FILTER_SANITIZE_URL);
+
+    return $url;
+  }
+
+  function get_arg_is_debug() {
+
+    $is_debug = filter_input(INPUT_GET, 'debug');
+    $is_debug = null !== $is_debug && "false" !== mb_strtolower($is_debug);
+
+
+    return $is_debug;
+  }
+
+  /**
+   * @return string
+   */
+  function get_arg_content_type() {
+    $content_type = filter_input(INPUT_GET, 'url');
+    $content_type = null === $content_type ? "text/plain" : preg_replace("#[^a-z0-9\.\-\/\+\=]#i", '', $content_type);
+
+    return $content_type;
+  }
+
+  /**
    * @param float $size                - the memory size to format
    * @param bool  $is_add_commas       (optional) - separate every 3 digits from the end so 56789 will be "56,789".
-   * @param bool  $is_full_description (optional) - use *Bytes instead of *b (GigaBytes instead of gb, etc...).
+   * @param bool  $is_full_description (optional) - use *Bytes instead of *b (Gigabytes instead of gb, etc...).
    * @param int   $digits              (optional) - number of digits decimal point, to limit, or -1 to not use padding
    *                                   or limiting.
    *
@@ -454,7 +523,7 @@
 
     $response_headers_and_content = explode("\r\n\r\n", $response_headers_and_content); //response(s)-headers and content are \r\n\r\n separated (last is content).
     $content = array_pop($response_headers_and_content);
-    $headers_response = $response_headers_and_content; //might be more then one item, due to redirections
+    $headers_response = $response_headers_and_content; //might be more then one item, due to redirection(s)
     unset($response_headers_and_content); //we have '$headers_response' and '$content'.
 
     $headers_response = array_map(function ($item) {
@@ -741,3 +810,78 @@
       'not_matched'          => $encoding_not_match
     ];
   }
+
+  function send_main_connection() {
+    return curlWrap(
+      [
+        "url"                          => get_arg_url()
+        , "additional_request_headers" =>
+          [
+            "Accept"            => "*/*"
+            , "Connection"      => "keep-alive"
+            , "Cache-Control"   => "no-cache"
+            , "Pragma"          => "no-cache"
+            , "Accept-Language" => "en,en-US;q=0.8"
+            , "User-Agent"      => "Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/42.0.2287.0 Safari/537.36"
+            , "Content-Type"    => "text/plain; charset=utf-8"
+            , "Referer"         => "http://fetch.eladkarako.com/"
+          ]
+        , "is_forwarded_for"           => true
+        , "is_follow_locations"        => true
+      ]
+    );
+
+  }
+
+  function send_analytics() {
+    $result = curlWrap(
+      [
+        "url"                        => "http://www.google-analytics.com/collect",
+        "additional_request_headers" =>
+          [
+            "Accept"            => "*/*"
+            , "Connection"      => "keep-alive"
+            , "Cache-Control"   => "no-cache"
+            , "Pragma"          => "no-cache"
+            , "Accept-Language" => isset($_SERVER['HTTP_ACCEPT_LANGUAGE']) ? $_SERVER['HTTP_ACCEPT_LANGUAGE'] : "en,en-US;q=0.8"
+            , "User-Agent"      => $data['useragent']
+            , "Content-Type"    => "text/plain; charset=utf-8"
+            , "Referer"         => "http://fetch.eladkarako.com/"
+            , "Cookie"          => '_ga=GA1.2.' . $data['unique_id_v1'] . '; ']
+        , "is_forwarded_for"         => true
+        , "is_follow_locations"      => true
+        , "is_post"                  => true //send as post
+        , "post_data"                =>
+          [
+            'v'        => 1 // ------------------------------------------------------------------- Version.
+            , '_v'     => 'j23' // --------------------------------------------------------------- new versions (javascript)
+            , 't'      => 'pageview' // ---------------------------------------------------------- action
+            , 'dl'     => 'http://' . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI']  // ------------------------------------------ The landing page (for example home page http://icompile.eladkarako.com)
+            , 'dp'     => 'http://' . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI'] // ------------------------------------------ The page that will receive the pageview (for example home page http://icompile.eladkarako.com?p=200)
+            , 'dh'     => 'redalert.eladkarako.com' // ------------------------------------------- domain name used. hard coded
+            , 'dr'     => $data['referer'] // ---------------------------------------------------- real referer - http referrer or empty string
+            , 'cs'     => $data['referer'] // ---------------------------------------------------- real referer - http referrer or empty string (the source of the visit (for example 'google') )
+            , 'ul'     => $data['language_selected'] // ------------------------------------------ browser language "en" or "he_IL", etc..
+            , 'de'     => 'UTF-8' // ------------------------------------------------------------- charset supported
+            , 'dt'     => 'fetch.eladkarako.com' // ----------------------------------------------------- page's title
+            , 'uip'    => $data['ip'] // --------------------------------------------------------- client-ip.
+            , 'ua'     => $data['useragent'] // -------------------------------------------------- client user-agent.
+            , 'cid'    => $data['unique_id_v1'] // ----------------------------------------------- client unique-id (uniqueId or UUIDv4)
+            , 'linkid' => 'content' // ----------------------------------------------------------- flag to collect more data, and aggregate it in reports (demographic, etc..)
+            , 'tid'    => 'UA-59223625-1' // ----------------------------------------------------- Google Analytics account ID (UA-98765432-1). hard coded.
+
+            //some stuff that are not important since we can not really measure them at all (no javascript client side..)
+            , 'a'      => 4998045 // ------------------------------------------------------------- ?
+            , '_s'     => 1 // ------------------------------------------------------------------- ?
+            , 'sd'     => '24-bit' // ------------------------------------------------------------ mock browser data : screen 24bit color
+            , 'sr'     => '1366x768' // ---------------------------------------------------------- mock browser data : screen 24bit color
+            , 'vp'     => '1341x397' // ---------------------------------------------------------- mock browser data : screen view-port.
+            // ------------------------------------------------------------ mock browser data : screen view-port.
+            , 'fl'     => '14.0 r0'
+          ]
+      ]);
+
+    return $result['connection']; //only return the connection details, for debug purposes.
+  }
+
+?>
